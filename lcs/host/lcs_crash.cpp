@@ -1022,10 +1022,13 @@ void note_cxx_throw(void *thrown, const std::type_info *type) noexcept { log_cxx
 
 }  // namespace lcs
 
-#if !defined(_WIN32)
-extern "C" void __cxa_throw(void *thrown, void *type, void (*dest)(void *)) {
-    lcs::note_cxx_throw(thrown, static_cast<const std::type_info *>(type));
-    using Throw = void (*)(void *, void *, void (*)(void *));
+// A static libstdc++ already defines __cxa_throw in the binary, so there is nothing to interpose and
+// LCS_TRACE_THROWS reports no throws in that build.
+#if !defined(_WIN32) && !defined(LCS_NO_CXA_THROW_HOOK)
+// Same parameter types as the cxxabi.h declaration, or clang with libstdc++ 14 rejects the redefinition.
+extern "C" void __cxa_throw(void *thrown, std::type_info *type, void (*dest)(void *)) {
+    lcs::note_cxx_throw(thrown, type);
+    using Throw = void (*)(void *, std::type_info *, void (*)(void *));
     static std::atomic<Throw> real{nullptr};
     Throw next = real.load(std::memory_order_acquire);
     if (next == nullptr) {

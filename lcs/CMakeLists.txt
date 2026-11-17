@@ -95,20 +95,23 @@ else()
     add_custom_target(lcs_ge_spirv DEPENDS ${LCS_GE_SPV_HEADER})
     add_dependencies(lcs_host lcs_ge_spirv)
     # pack_font5x7 turns host/font5x7.txt into the F10 menu font. Windows skips this.
-    add_executable(lcs_pack_font5x7 host/pack_font5x7.cpp)
-    set_target_properties(lcs_pack_font5x7 PROPERTIES EXCLUDE_FROM_ALL TRUE)
-    set(LCS_FONT_HEADER ${CMAKE_CURRENT_BINARY_DIR}/generated/host_font_5x7.hpp)
-    add_custom_command(
-        OUTPUT ${LCS_FONT_HEADER}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/generated
-        COMMAND lcs_pack_font5x7 ${CMAKE_CURRENT_SOURCE_DIR}/host/font5x7.txt ${LCS_FONT_HEADER}
-        DEPENDS lcs_pack_font5x7 ${CMAKE_CURRENT_SOURCE_DIR}/host/font5x7.txt
-        COMMENT "Packing host menu font"
-        VERBATIM)
-    add_custom_target(lcs_host_font DEPENDS ${LCS_FONT_HEADER})
-    add_dependencies(lcs_host lcs_host_font)
-    set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/host/display_window_sdl.cpp
-        PROPERTIES OBJECT_DEPENDS ${LCS_FONT_HEADER})
+    # A cross build cannot run a target binary, so it uses the checked-in header as Windows does.
+    if(NOT CMAKE_CROSSCOMPILING)
+        add_executable(lcs_pack_font5x7 host/pack_font5x7.cpp)
+        set_target_properties(lcs_pack_font5x7 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+        set(LCS_FONT_HEADER ${CMAKE_CURRENT_BINARY_DIR}/generated/host_font_5x7.hpp)
+        add_custom_command(
+            OUTPUT ${LCS_FONT_HEADER}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/generated
+            COMMAND lcs_pack_font5x7 ${CMAKE_CURRENT_SOURCE_DIR}/host/font5x7.txt ${LCS_FONT_HEADER}
+            DEPENDS lcs_pack_font5x7 ${CMAKE_CURRENT_SOURCE_DIR}/host/font5x7.txt
+            COMMENT "Packing host menu font"
+            VERBATIM)
+        add_custom_target(lcs_host_font DEPENDS ${LCS_FONT_HEADER})
+        add_dependencies(lcs_host lcs_host_font)
+        set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/host/display_window_sdl.cpp
+            PROPERTIES OBJECT_DEPENDS ${LCS_FONT_HEADER})
+    endif()
     target_include_directories(lcs_host BEFORE PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
     set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/host/ge_gpu_backend_vulkan.cpp
         PROPERTIES OBJECT_DEPENDS ${LCS_GE_SPV_HEADER})

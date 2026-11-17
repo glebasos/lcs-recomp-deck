@@ -174,6 +174,26 @@ backend name keeps the software rasterizer. `LCS_VULKAN_VALIDATION=1`
 turns on the Khronos validation layer and prints its warnings and
 errors.
 
+### Linux build from Windows
+
+Cross-compiles the Linux binary on Windows without WSL or Docker. Needs LLVM
+(clang and lld), CMake, Ninja and Python.
+
+```text
+powershell -ExecutionPolicy Bypass -File lcs\scripts\build_linux_cross.ps1
+```
+
+`lcs/scripts/fetch_linux_sysroot.py` downloads a Debian 13 sysroot (glibc,
+libstdc++, SDL2, Vulkan, FFmpeg 7) plus Windows builds of `glslang` and
+`pkgconf` into `out/linux-cross/`. `lcs/scripts/linux-cross.cmake` is the
+toolchain. libstdc++ is linked statically, so the binary needs glibc 2.38,
+SDL2 and Vulkan on the target. FFmpeg 7.1 is not on SteamOS, so the script
+also fetches a pinned, checksummed LGPL build from BtbN FFmpeg-Builds (glibc
+2.28 floor, no other dependencies) and stages it in `lib/`, which `play.sh`
+puts on `LD_LIBRARY_PATH`. The output is staged in `out/lcs-linux-deck/` with
+`play.sh`; put `EBOOT.ELF` and `PSP_GAME` in a `game/` folder next to it. The F10 font comes from the checked-in
+`lcs/host/host_font_5x7.hpp`, as on Windows.
+
 ## Docker
 You also can utilize [Docker](https://www.docker.com/) to build the Linux version.
 
