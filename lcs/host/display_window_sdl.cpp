@@ -292,7 +292,7 @@ void paint_host_settings(SDL_Renderer *renderer) noexcept {
     fill_rect(renderer, origin_x, origin_y, panel_w, panel_h);
     SDL_SetRenderDrawColor(renderer, 180, 200, 230, 255);
     draw_text(renderer, origin_x + 8 * scale, origin_y + 6 * scale, scale, "HOST SETTINGS");
-    draw_text(renderer, origin_x + 8 * scale, origin_y + 16 * scale, scale, "F10 CLOSE");
+    draw_text(renderer, origin_x + 8 * scale, origin_y + 16 * scale, scale, "F10 OR B CLOSE");
     for (int row = 0; row < 5; ++row) {
         const int y = origin_y + (28 + row * 12) * scale;
         if (row == view.selected) {
@@ -549,6 +549,21 @@ HostInputState display_window_input() {
         return cached;
     cached_at = poll_time;
     pump_events();
+    bool pad_held_by_menu = false;
+    if (g_pad != nullptr && g_window != nullptr && g_focused) {
+        const auto held = [](SDL_GameControllerButton id) {
+            return SDL_GameControllerGetButton(g_pad, id) != 0;
+        };
+        HostSettingsPad menu_pad;
+        menu_pad.up = held(SDL_CONTROLLER_BUTTON_DPAD_UP);
+        menu_pad.down = held(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+        menu_pad.left = held(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+        menu_pad.right = held(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+        menu_pad.close = held(SDL_CONTROLLER_BUTTON_B);
+        menu_pad.back = held(SDL_CONTROLLER_BUTTON_BACK);
+        menu_pad.start = held(SDL_CONTROLLER_BUTTON_START);
+        pad_held_by_menu = host_settings_pad(menu_pad);
+    }
     if (host_settings_open()) {
         discard_pending_pointer();
         cached = {};
@@ -631,7 +646,7 @@ HostInputState display_window_input() {
         --wheel_hold;
         input.buttons |= wheel_button;
     }
-    if (!focused || g_pad == nullptr) return publish();
+    if (!focused || g_pad == nullptr || pad_held_by_menu) return publish();
 
     const auto pad_down = [&](PadButton button) {
         const auto held = [&](SDL_GameControllerButton id) {

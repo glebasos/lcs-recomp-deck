@@ -261,6 +261,31 @@ bool host_settings_handle(HostSettingsKey key) noexcept {
     return true;
 }
 
+bool host_settings_pad(const HostSettingsPad &pad) noexcept {
+    static HostSettingsPad previous{};
+    static bool latched = false;
+    const auto pressed = [](bool now, bool before) { return now && !before; };
+    if (pad.back && pad.start && !(previous.back && previous.start)) {
+        host_settings_handle(HostSettingsKey::Toggle);
+        latched = true;
+    } else if (host_settings_open()) {
+        if (pressed(pad.up, previous.up)) host_settings_handle(HostSettingsKey::Up);
+        if (pressed(pad.down, previous.down)) host_settings_handle(HostSettingsKey::Down);
+        if (pressed(pad.left, previous.left)) host_settings_handle(HostSettingsKey::Left);
+        if (pressed(pad.right, previous.right)) host_settings_handle(HostSettingsKey::Right);
+        if (pressed(pad.close, previous.close)) {
+            host_settings_handle(HostSettingsKey::Close);
+            latched = true;
+        }
+    }
+    previous = pad;
+    // Keep the game from reading Start (pause) or B (attack) as the panel closes.
+    if (latched && !pad.back && !pad.start && !pad.close && !pad.up && !pad.down &&
+        !pad.left && !pad.right)
+        latched = false;
+    return host_settings_open() || latched;
+}
+
 Win32HostKeyDecision classify_win32_host_key(std::uint32_t message, std::uint32_t wparam,
                                             bool repeat) noexcept {
     Win32HostKeyDecision decision{};
@@ -366,7 +391,7 @@ void rasterize_settings_overlay(const HostSettingsView &view, std::uint8_t *rgba
     overlay_fill(rgba, width, height, 0, 0, static_cast<int>(width), static_cast<int>(height),
                  8u, 12u, 28u, 230u);
     overlay_text(rgba, width, height, 8 * scale, 6 * scale, scale, "HOST SETTINGS", 180u, 200u, 230u);
-    overlay_text(rgba, width, height, 8 * scale, 6 * scale + line, scale, "F10 CLOSE", 180u, 200u, 230u);
+    overlay_text(rgba, width, height, 8 * scale, 6 * scale + line, scale, "F10 OR B CLOSE", 180u, 200u, 230u);
     for (int row = 0; row < 5; ++row) {
         const int y = 6 * scale + line * (2 + row);
         if (row == view.selected)

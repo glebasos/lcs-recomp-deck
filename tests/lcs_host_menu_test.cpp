@@ -263,6 +263,42 @@ int f10_key() {
     return 0;
 }
 
+int pad_menu() {
+    using namespace lcs;
+    HostSettingsPad pad;
+    if (host_settings_pad(pad) || host_settings_open()) return fail("idle pad held the game");
+    pad.back = true;
+    if (host_settings_pad(pad) || host_settings_open()) return fail("Back alone opened the menu");
+    pad.start = true;
+    if (!host_settings_pad(pad) || !host_settings_open()) return fail("Back+Start did not open");
+    if (!host_settings_pad(pad) || !host_settings_open()) return fail("held combo toggled again");
+    pad = {};
+    host_settings_pad(pad);
+    const int first = host_settings_view().selected;
+    pad.down = true;
+    host_settings_pad(pad);
+    host_settings_pad(pad);  // held: one step only
+    if (host_settings_view().selected == first) return fail("D-pad down did not move");
+    pad = {};
+    host_settings_pad(pad);
+    pad.up = true;
+    host_settings_pad(pad);
+    if (host_settings_view().selected != first) return fail("D-pad up did not return");
+    pad = {};
+    host_settings_pad(pad);
+    pad.close = true;
+    if (!host_settings_pad(pad) || host_settings_open()) return fail("B did not close and hold");
+    if (!host_settings_pad(pad)) return fail("held B reached the game after closing");
+    pad = {};
+    if (host_settings_pad(pad)) return fail("released pad still held");
+    pad.start = true;
+    if (host_settings_pad(pad) || host_settings_open()) return fail("Start alone was taken");
+    pad = {};
+    host_settings_pad(pad);
+    std::cout << "combo=open dpad=steer b=close+hold release=free start=game\n";
+    return 0;
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
@@ -273,5 +309,6 @@ int main(int argc, char **argv) {
     if (mode == "f10") return f10_key();
     if (mode == "bindings") return bindings();
     if (mode == "fps") return fps_counter();
+    if (mode == "pad") return pad_menu();
     return 2;
 }

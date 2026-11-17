@@ -228,7 +228,7 @@ void paint_host_overlay(HDC hdc) noexcept {
         DeleteObject(background);
         SetTextColor(hdc, RGB(180, 200, 230));
         TextOutA(hdc, origin_x + 12, origin_y + 8, "HOST SETTINGS", 13);
-        TextOutA(hdc, origin_x + 12, origin_y + 8 + line, "F10 CLOSE", 9);
+        TextOutA(hdc, origin_x + 12, origin_y + 8 + line, "F10 OR B CLOSE", 14);
         for (int row = 0; row < 5; ++row) {
             const int y = origin_y + 8 + line * (2 + row);
             if (row == view.selected) {
@@ -583,6 +583,24 @@ HostInputState display_window_input() {
         poll_time - cached_at < std::chrono::milliseconds(4))
         return cached;
     cached_at = poll_time;
+    bool pad_held_by_menu = false;
+    if (g_window != nullptr && GetForegroundWindow() == g_window) {
+        if (const PfnXInputGetState get_state = xinput_get_state()) {
+            XInputStatePacket pad{};
+            if (get_state(0u, &pad) == ERROR_SUCCESS) {
+                const std::uint16_t b = pad.gamepad.buttons;
+                HostSettingsPad menu_pad;
+                menu_pad.up = (b & kPadDpadUp) != 0;
+                menu_pad.down = (b & kPadDpadDown) != 0;
+                menu_pad.left = (b & kPadDpadLeft) != 0;
+                menu_pad.right = (b & kPadDpadRight) != 0;
+                menu_pad.close = (b & kPadB) != 0;
+                menu_pad.back = (b & kPadBack) != 0;
+                menu_pad.start = (b & kPadStart) != 0;
+                pad_held_by_menu = host_settings_pad(menu_pad);
+            }
+        }
+    }
     if (host_settings_open()) {
         discard_pending_pointer();
         cached = {};
@@ -701,7 +719,7 @@ HostInputState display_window_input() {
         input.buttons |= wheel_button;
     }
 
-    if (!focused) return publish();
+    if (!focused || pad_held_by_menu) return publish();
     if (const PfnXInputGetState get_state = xinput_get_state()) {
         XInputStatePacket pad{};
         if (get_state(0u, &pad) == ERROR_SUCCESS) {

@@ -25,6 +25,22 @@ bool host_settings_handle(HostSettingsKey key) noexcept;
 void host_settings_note_fullscreen(bool enabled) noexcept;
 [[nodiscard]] HostSettingsView host_settings_view() noexcept;
 
+// Controller buttons the host settings panel reads, sampled once per input poll.
+struct HostSettingsPad {
+    bool up{false};
+    bool down{false};
+    bool left{false};
+    bool right{false};
+    bool close{false};  // B / Circle
+    bool back{false};
+    bool start{false};
+};
+
+// Back + Start toggles the panel; while it is open the D-pad steers it and B closes it.
+// Returns true when the game must not see the pad this poll: the panel is open, or the
+// buttons that opened or closed it are still held.
+bool host_settings_pad(const HostSettingsPad &pad) noexcept;
+
 // Win32 message and virtual-key values, named here so the window procedure
 // and the tests share one classification without including windows.h.
 inline constexpr std::uint32_t kWin32KeyDown = 0x0100u;
